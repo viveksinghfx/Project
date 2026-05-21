@@ -1,0 +1,51 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: eks-namespace
+  title: EKS Namespace
+  description: Provision a Kubernetes namespace with RBAC, LimitRange, and NetworkPolicy.
+  tags: [kubernetes, rbac]
+spec:
+  owner: platform-team
+  type: infrastructure
+
+  parameters:
+    - title: Namespace Config
+      required: [namespaceName, team]
+      properties:
+        namespaceName:
+          title: Namespace Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]{1,40}$'
+        team:
+          title: Owning Team
+          type: string
+        cpuLimit:
+          title: CPU Limit per Pod
+          type: string
+          default: "500m"
+        memoryLimit:
+          title: Memory Limit per Pod
+          type: string
+          default: "512Mi"
+
+  steps:
+    - id: fetch
+      name: Fetch template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          namespaceName: ${{ parameters.namespaceName }}
+          team: ${{ parameters.team }}
+          cpuLimit: ${{ parameters.cpuLimit }}
+          memoryLimit: ${{ parameters.memoryLimit }}
+
+    - id: pr
+      name: Open PR to platform repo
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=viveksinghfx&repo=vivek-devops-portfolio
+        title: "feat: add namespace ${{ parameters.namespaceName }}"
+        branchName: ns-${{ parameters.namespaceName }}
+        description: Auto-generated namespace for team ${{ parameters.team }}

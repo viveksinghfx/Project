@@ -1,0 +1,16 @@
+---
+- name: Install Python3, pip3, and AWS CLI
+  become: true
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3
+    - python3-pip
+    - awscli
+
+- name: Install boto3 using pip3
+  become: true
+  pip:
+    name: boto3
+    state: present

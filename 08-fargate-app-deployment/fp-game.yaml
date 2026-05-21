@@ -1,0 +1,11 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: private-fargate-cluster
+  region: us-west-2
+
+fargateProfiles:
+  - name: fp-game
+    selectors:
+      - namespace: game-ns

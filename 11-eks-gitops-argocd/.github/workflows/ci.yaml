@@ -1,0 +1,47 @@
+name: CI - Build & Push to ECR
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-ecr-push
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/backend-app:$IMAGE_TAG .
+          docker push $REGISTRY/backend-app:$IMAGE_TAG
+
+      - name: Update kustomize image tag
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          cd 11-eks-gitops-argocd/k8s/overlays/prod
+          kustomize edit set image ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/backend-app=$REGISTRY/backend-app:$IMAGE_TAG
+          git config user.email "ci@viveksingh.tech"
+          git config user.name "CI Bot"
+          git add kustomization.yaml
+          git commit -m "ci: update image tag to $IMAGE_TAG"
+          git push

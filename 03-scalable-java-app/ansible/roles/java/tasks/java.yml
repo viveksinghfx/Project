@@ -1,0 +1,18 @@
+---
+  - name: Update and upgrade apt packages
+    become: true
+    apt:
+        upgrade: yes
+        update_cache: yes
+
+  - name: Install JRE
+    become: true
+    apt:
+      name: openjdk-17-jre
+      state: latest
+
+  - name: Create log file
+    file:
+        path: /var/log/petclinic.log
+        state: touch
+        mode: '0777'

@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.serviceName }}
+  description: Auto-scaffolded service
+  annotations:
+    github.com/project-slug: viveksinghfx/${{ values.serviceName }}
+    prometheus.io/scrape: "true"
+spec:
+  type: service
+  lifecycle: production
+  owner: ${{ values.owner }}

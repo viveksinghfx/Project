@@ -1,0 +1,86 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: new-microservice
+  title: New Microservice
+  description: Scaffold a new microservice with ECR, EKS namespace, ArgoCD app, and CI/CD pipeline.
+  tags: [python, kubernetes, argocd, aws]
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Service Info
+      required: [serviceName, owner, description]
+      properties:
+        serviceName:
+          title: Service Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]{2,30}$'
+          description: Lowercase, hyphens allowed, 3-30 chars
+        owner:
+          title: Owner Team
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        description:
+          title: Description
+          type: string
+
+    - title: Infrastructure
+      properties:
+        environment:
+          title: Target Environment
+          type: string
+          enum: [dev, staging, prod]
+          default: dev
+        awsRegion:
+          title: AWS Region
+          type: string
+          default: ap-south-1
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          serviceName: ${{ parameters.serviceName }}
+          owner: ${{ parameters.owner }}
+          environment: ${{ parameters.environment }}
+
+    - id: create-repo
+      name: Create GitHub Repo
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=viveksinghfx&repo=${{ parameters.serviceName }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        repoVisibility: private
+
+    - id: register-catalog
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['create-repo'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: argocd-app
+      name: Create ArgoCD Application
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.serviceName }}-${{ parameters.environment }}
+        argoInstance: prod-argocd
+        namespace: ${{ parameters.serviceName }}
+        repoUrl: ${{ steps['create-repo'].output.remoteUrl }}
+        path: k8s/overlays/${{ parameters.environment }}
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['create-repo'].output.remoteUrl }}
+      - title: ArgoCD Application
+        url: https://argocd.viveksingh.tech/applications/${{ parameters.serviceName }}-${{ parameters.environment }}

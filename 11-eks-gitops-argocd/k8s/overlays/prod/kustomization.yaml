@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+  - ../../base
+patches:
+  - patch.yaml
+images:
+  - name: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/backend-app
+    newTag: "latest"
